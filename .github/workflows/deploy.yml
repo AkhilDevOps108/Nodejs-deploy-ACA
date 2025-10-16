@@ -1,0 +1,49 @@
+name: Nodejs-deploy-ACA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+
+jobs:
+    build-and-deploy:
+      runs-on: ubuntu-latest
+
+      
+steps:
+   - name: Checkout source code
+     uses: actions/checkout@v4
+
+## step 2 : login to azure using service principle
+
+   - name: Azure Login
+     uses: azure/login@v1
+     with: 
+     creds: ${{ secrets.AZURE_CREDENTIALS }}
+     
+##STEP:3 LOG IN AZURE container registry 
+   - name: Azure CLI Login to ACR
+     run: |
+      az acr login --name ${{ secrets.ACR_NAME}}
+
+  #3step4 
+   - name: Build Docker image
+     run: |
+       IMAGE_NAME=${{ secrets.ACR_NAME }}.azureacr.io/nodejswebapp:${{ github.run_number }}
+       echo "Building image $IMAGE_NAME"
+       docker build -t $IMAGE_NAME
+
+     #STEP 5 PUSHJ DOCKER IMAHGE TO ACR
+
+   - name: Push Docker image to ACR
+     run: |
+       IMAGE_NAME=${{ secrets.ACR_NAME }}.azureacr.io/nodejswebapp:${{ github.run_number }}
+       docker push $IMAGE_NAME
+       
+    #step 6 deploy to azure container app
+
+   - name: Deploy to Azure Container App
+     run: |
+        IAMGE_NAME=${{ secrets.ACR_NAME }}
+    
